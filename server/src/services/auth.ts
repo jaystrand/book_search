@@ -1,39 +1,55 @@
-import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-
+import User from '../models/User';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 interface JwtPayload {
-  _id: unknown;
+  _id: string;
   username: string;
-  email: string,
+  email: string;
 }
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+// Modify authenticateToken to work with GraphQL context
+export const authenticateToken = async (token: string) => {
+  // If no token is provided, return null
+  if (!token) {
+    return null;
+  }
 
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
-
+  try {
     const secretKey = process.env.JWT_SECRET_KEY || '';
 
-    jwt.verify(token, secretKey, (err, user) => {
-      if (err) {
-        return res.sendStatus(403); // Forbidden
-      }
+    // Verify the token
+    const decoded = jwt.verify(token, secretKey) as JwtPayload;
 
-      req.user = user as JwtPayload;
-      return next();
-    });
-  } else {
-    res.sendStatus(401); // Unauthorized
+    // Find the user in the database to ensure they exist
+    const user = await User.findById(decoded._id).select('-password');
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      _id: user._id,
+      username: user.username,
+      email: user.email
+    };
+  } catch (err) {
+    // Token is invalid or expired
+    return null;
   }
 };
 
+// Keep the existing signToken method
 export const signToken = (username: string, email: string, _id: unknown) => {
   const payload = { username, email, _id };
   const secretKey = process.env.JWT_SECRET_KEY || '';
 
   return jwt.sign(payload, secretKey, { expiresIn: '1h' });
+};
+
+export default {
+  authenticateToken,
+  signToken
 };
