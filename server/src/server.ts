@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { ApolloServerPluginDrainHttpServer } from 'apollo-server-core';
 import http from 'http';
@@ -12,12 +12,16 @@ import db from './config/connection';
 
 dotenv.config();
 
-async function startApolloServer(typeDefs, resolvers) {
+async function startApolloServer(typeDefs: any, resolvers: any) {
   const app = express();
   const httpServer = http.createServer(app);
 
   // Middleware for authentication
-  const authMiddleware = async (req, res, next) => {
+  interface AuthenticatedRequest extends Request {
+    user?: { _id: unknown; username: string; email: string } | null;
+  }
+
+  const authMiddleware = async (req: express.Request & AuthenticatedRequest, _res: express.Response, next: express.NextFunction) => {
     const token = req.headers.authorization?.split(' ')[1] || '';
     
     try {
@@ -47,7 +51,7 @@ async function startApolloServer(typeDefs, resolvers) {
   });
 
   await server.start();
-  server.applyMiddleware({ app });
+  server.applyMiddleware({ app: app as express.Application });
 
   // Fallback route for React routing in production
   app.get('*', (req, res) => {

@@ -1,10 +1,10 @@
 import User from '../models/User';
-import { signToken, authenticateToken } from '../services/auth';
+import { signToken } from '../services/auth';
 import { GraphQLError } from 'graphql';
 
 const resolvers = {
   Query: {
-    me: async (_, __, context) => {
+    me: async (_: any, __: any, context: any) => {
       // Check if user is authenticated
       if (!context.user) {
         throw new GraphQLError('You must be logged in', {
@@ -20,7 +20,7 @@ const resolvers = {
   },
 
   Mutation: {
-    login: async (_, { email, password }) => {
+    login: async (_: any, { email, password }: { email: string; password: string }) => {
       const user = await User.findOne({ $or: [{ username: email }, { email }] });
       
       if (!user) {
@@ -45,7 +45,7 @@ const resolvers = {
       return { token, user };
     },
 
-    addUser: async (_, { username, email, password }) => {
+    addUser: async (_: any, { username, email, password }: { username: string; email: string; password: string }) => {
       const user = await User.create({ username, email, password });
       
       if (!user) {
@@ -60,7 +60,7 @@ const resolvers = {
       return { token, user };
     },
 
-    saveBook: async (_, { bookData }, context) => {
+    saveBook: async (_: any, { bookData }: { bookData: any }, context: any) => {
       if (!context.user) {
         throw new GraphQLError('You must be logged in', {
           extensions: {
@@ -86,7 +86,7 @@ const resolvers = {
       }
     },
 
-    removeBook: async (_, { bookId }, context) => {
+    removeBook: async (_: any, { bookId }: { bookId: string }, context: any) => {
       if (!context.user) {
         throw new GraphQLError('You must be logged in', {
           extensions: {
